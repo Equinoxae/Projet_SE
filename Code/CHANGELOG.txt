@@ -1,0 +1,10 @@
+
+========== V 0 - 14/11 ==========
+- Mise en place du GIT
+- Ajout du sujet 
+- Création du fichier .c
+- Création du changelog
+- Création du Makefile
+- Importation du Makefile de test (MakefileProf)
+
+_________________________________________________________________________________
