@@ -1,10 +1,16 @@
-
+﻿
 ========== V 0 - 14/11 ==========
 - Mise en place du GIT
-- Ajout du sujet 
-- Cr�ation du fichier .c
-- Cr�ation du changelog
-- Cr�ation du Makefile
+- Ajout du sujet
+- Création du fichier .c
+- Création du changelog
+- Création du Makefile
 - Importation du Makefile de test (MakefileProf)
+- Importation d'un fichier contenant la sortie normale (TestFile.txt)
+- Création du rapport
 
+========== V 0.1- 14/11 ==========
+-Déclarations des prototypes
+-Mise en place des fonctions (vides)
+-Première version du main
 _________________________________________________________________________________
