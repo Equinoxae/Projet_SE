@@ -1,0 +1,55 @@
+corrige$ make -f ../procedure_de_test/Makefile
+gcc -O2 -Wall -g    findexec.c   -o findexec
+mkdir -p testdir/cde
+for f in a b c d e f; do mkdir testdir/$f; touch testdir/$f/vide$f; done
+seq 100 >testdir/a/100
+seq 1000 >testdir/b/1000
+echo "bonjour" >testdir/b/bonjour
+for (( i=0 ; i<200 ; i++ )) ; do echo "hello" >>testdir/b/bonjour200 ; done
+for (( i=0 ; i<1000 ; i++ )) ; do echo $i >testdir/c/i$i ; done
+mkdir -p  testdir/d/e/f/g/h/i/j/k/l/m/n
+echo abc >testdir/d/e/f/g/h/i/j/k/l/m/n/abc
+################### TESTING: test_args
+./findexec -h >/dev/null 2>&1
+./findexec -unknown_option >/dev/null 2>&1 || exit 0 && exit 1
+./findexec -n 10 -e wc testdir/a >/dev/null 2>&1
+TESTING: test_args passed
+################### TESTING: test_ls
+./findexec -e ls testdir >test_sortie_ls
+./findexec       testdir >test_sortie_sans_arg
+diff test_sortie_ls test_sortie_sans_arg
+./findexec -e ls testdir/a testdir/b testdir/d >test_sortie_ls3
+./findexec       testdir/a testdir/b testdir/d >test_sortie_sans_arg3
+diff test_sortie_ls3 test_sortie_sans_arg3
+TESTING: test_ls passed
+################### TESTING: test_wc
+./findexec -e wc testdir >test_sortie_wc
+test `egrep "^[[:space:]]*1[[:space:]]" test_sortie_wc | wc -l` -eq 1002
+test `egrep "^[[:space:]]*0[[:space:]]" test_sortie_wc | wc -l` -eq 6
+test `egrep "^[[:space:]]*1000[[:space:]]" test_sortie_wc | wc -l` -eq 1
+TESTING: test_wc passed
+################### TESTING: test_script
+echo "#!/bin/bash" >test_script
+echo "grep 10 \$1 && echo ^\$1" >>test_script
+echo "exit 0" >>test_script
+chmod +x test_script
+./findexec -e ./test_script testdir >test_sortie_script
+test `cat test_sortie_script | wc -l` -eq 65
+./findexec -n 10 -e ./test_script testdir >test_sortie_script
+test `cat test_sortie_script | wc -l` -eq 65
+TESTING: test_script passed
+################### TESTING: test_paral
+# avec -n 1 la sortie devrait être identique
+./findexec -e ls testdir >test_sortie_ls
+./findexec -n 1  testdir >test_sortie_sans_arg
+diff test_sortie_ls test_sortie_sans_arg
+# avec -n 20 la sortie devrait être différente
+./findexec -e ls testdir >test_sortie_ls
+./findexec -n 20  testdir >test_sortie_sans_arg
+diff test_sortie_ls test_sortie_sans_arg >/dev/null || exit 0 && exit 1
+# mais triées elles doivent être identiques
+sort test_sortie_ls >test_sortie_ls2
+sort test_sortie_sans_arg >test_sortie_sans_arg2
+diff test_sortie_ls2 test_sortie_sans_arg2
+TESTING: test_paral passed
+corrige$
