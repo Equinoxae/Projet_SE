@@ -13,4 +13,8 @@
 -Déclarations des prototypes
 -Mise en place des fonctions (vides)
 -Première version du main
+
+========== V 0.1- 16/11 ==========
+-Mise en forme du rapport
+-Introduction
 _________________________________________________________________________________
