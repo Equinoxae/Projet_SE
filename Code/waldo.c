@@ -17,7 +17,9 @@ int parcourir (const char *cmd, const char *racine, int maxproc, int nproc);
 /*Affiche l'aide à l'utilisation du programme*/
 void help()
 {
-  printf("aide");
+  printf("Utilisation de findexec\nParamètres optionnels:\n -e [commande à éxecuter]\n");
+  printf(" -h affichage de l'aide\n -n [0<int] (nombre de processus simultanées max)\n");
+  printf("Appel : \n findexec [parameters] path(s)\n");
 }
 
 int parcourir (const char *cmd, const char *racine, int maxProc, int nProc)
@@ -68,9 +70,6 @@ int main(int argc, char const *argv[])
      case 'e':
        cmd = optarg;
        break;
-     case '/':
-      path=optarg;
-      break;
      case '?':
        if (optopt == 'c')
          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -86,15 +85,17 @@ int main(int argc, char const *argv[])
   }
 
   printf("maxProc : %d Cmd : %s Path :%s",maxProc,cmd,argv[optind]);
-  if(path==NULL)
+  int i=optind;
+
+  if(i==argc)
   {
     printf("No path specified");
     return -1;
   }
-  else if(cmd==NULL)
+
+  for(i;i<argc;i++)
   {
-    printf("No command specified");
-    return -1;
+    /* lancer */
   }
 
   return 0;
