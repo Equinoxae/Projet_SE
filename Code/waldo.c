@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 
 /* Constantes */
 
@@ -12,6 +13,8 @@ void help();
 int lancer (const char *cmd, const char *fichier, int maxProc, int nProc);
 int parcourir (const char *cmd, const char *racine, int maxproc, int nproc);
 /*Fonctions */
+
+/*Affiche l'aide à l'utilisation du programme*/
 void help()
 {
   printf("aide");
@@ -36,48 +39,53 @@ int main(int argc, char const *argv[])
   int maxProc=1;
   errno = 0;
 
-  if(argc<4)
-  {
-    printf("Il faut spécifier au moins 3 paramètres (%d/3 fournis)\n Plus d'information avec l'option -h",argc-1 );
+  int c, errflg = 0 ;
+  extern char *optarg ;
+  extern int optind,optopt ;
+  long conv;
+
+  while ((c = getopt(argc, argv, "hn:e:"))!= -1)
+   switch (c)
+     {
+     case 'h':
+       help();
+       exit(0);
+       break;
+     case 'n':
+        /*try to convert the next parameter to a long*/
+       conv = strtol(optarg, &p, 10);
+       /* If the parameter is a number and is under INT_MAX*/
+       if (errno != 0 || *p != '\0' || conv > INT_MAX || conv <= 0)
+       {
+         printf("%s is not a valid number\n Exiting ...",optarg);
+         return -1;
+       }
+       else
+       {
+           maxProc = conv;
+       }
+       break;
+     case 'e':
+       cmd = optarg;
+       break;
+     case '/':
+      path=optarg;
+      break;
+     case '?':
+       if (optopt == 'c')
+         fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+       else if (isprint (optopt))
+         fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+       else
+         fprintf (stderr,
+                  "Unknown option character `\\x%x'.\n",
+                  optopt);
+       return -1;
+     default:
+       abort();
   }
 
-  for(i=1;i<argc;i++)
-  {
-    /*If -h parameter is specified, print instructions and exit */
-    if(argv[i]=="-h")
-    {
-      help();
-      return 0;
-    }
-    /*If -e parameter is specified, check if the next parameter exist and then
-    assign it to the cmd var */
-    else if(argv[i]=="-e" && i+1<argc)
-    {
-      cmd=(char*)argv[++i];
-    }
-    /*If -n parameter is specified and the next parameter exist*/
-    else if(argv[i]=="-n" && i+1<argc)
-    {
-      /*try to convert the next parameter to a long*/
-      long conv = strtol(argv[++i], &p, 10);
-      /* If the parameter is a number and is under INT_MAX*/
-      if (errno != 0 || *p != '\0' || conv > INT_MAX || conv <= 0)
-      {
-        printf("%s is not a valid number\n Exiting ...",argv[i]);
-        return -1;
-      }
-      else
-      {
-          maxProc = conv;
-      }
-    }
-    /* if it's not a parameter it must be a path */
-    else
-    {
-      path=(char*)argv[i];
-    }
-  }
-
+  printf("maxProc : %d Cmd : %s Path :%s",maxProc,cmd,argv[optind]);
   if(path==NULL)
   {
     printf("No path specified");
@@ -88,8 +96,6 @@ int main(int argc, char const *argv[])
     printf("No command specified");
     return -1;
   }
-
-  parcourir(cmd, path, maxProc,0);
 
   return 0;
 }
