@@ -21,7 +21,9 @@
 
 ========== V 0.2- 22/11 ==========
 - Utilisation getOpt
-- Création de la méthode d'aide 
+- Création de la méthode d'aide
 
+========== V 0.3- 23/11 ==========
+- Création de lancer
 
 _________________________________________________________________________________

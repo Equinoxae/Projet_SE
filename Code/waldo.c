@@ -5,13 +5,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 /* Constantes */
+#define MY_EOF -1
 
 /* Définition des fonctions */
 void help();
 int lancer (const char *cmd, const char *fichier, int maxProc, int nProc);
 int parcourir (const char *cmd, const char *racine, int maxproc, int nproc);
+void attendre();
 /*Fonctions */
 
 /*Affiche l'aide à l'utilisation du programme*/
@@ -22,13 +26,38 @@ void help()
   printf("Appel : \n findexec [parameters] path(s)\n");
 }
 
+void attendre()
+{
+  wait(NULL);
+}
+
 int parcourir (const char *cmd, const char *racine, int maxProc, int nProc)
 {
+  lancer(cmd,racine,maxProc,nProc);
   return 0;
 }
 
-int lancer (const char *cmd, const char *fichier, int maxproc, int nproc)
+int lancer (const char *cmd, const char *fichier, int maxProc, int nProc)
 {
+  int fd;
+  pid_t f;
+  f=fork();
+
+  switch (f)
+  {
+    case 0: /* fils */
+      fd= open(fichier,O_RDONLY);
+      dup2(fd,0);
+      close(fd);
+      execlp(cmd,fichier);
+      break;
+    case -1: /* erreur */
+      printf("Error\n");
+      return MY_EOF;
+    default: /*pere*/
+      wait(NULL);
+      break;
+  }
   return 0;
 }
 
@@ -39,8 +68,8 @@ int main(int argc, char const *argv[])
   char* path= NULL;
   char* p;
   int maxProc=1;
+  int nProc=0;
   errno = 0;
-
   int c, errflg = 0 ;
   extern char *optarg ;
   extern int optind,optopt ;
@@ -84,19 +113,18 @@ int main(int argc, char const *argv[])
        abort();
   }
 
-  printf("maxProc : %d Cmd : %s Path :%s",maxProc,cmd,argv[optind]);
-  int i=optind;
+  i=optind;
 
   if(i==argc)
   {
-    printf("No path specified");
+    printf("No path specified\n");
     return -1;
   }
 
   for(i;i<argc;i++)
   {
-    /* lancer */
+    printf("maxProc : %d Cmd : %s Path :%s \n",maxProc,cmd,argv[i]);
+    parcourir(cmd,argv[i],maxProc,nProc);
   }
-
   return 0;
 }
