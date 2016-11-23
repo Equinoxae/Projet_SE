@@ -7,6 +7,8 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 /* Constantes */
 #define MY_EOF -1
@@ -33,8 +35,32 @@ void attendre()
 
 int parcourir (const char *cmd, const char *racine, int maxProc, int nProc)
 {
-  lancer(cmd,racine,maxProc,nProc);
-  return 0;
+  struct dirent *d;
+  DIR *dp;
+  struct stat statD;
+
+  if ((dp = opendir(".")) == NULL)
+    return MY_EOF;
+
+  while(( d = readdir(dp)) != NULL )
+  {
+    if((strcmp(d->d_name,".") != 0) && (strcmp(d->d_name,"..") != 0))
+    {
+      stat(d->d_name,&statD);
+      lancer(cmd,d->d_name,maxProc,nProc);
+      if(S_ISDIR(statD.st_mode))
+      {
+        chdir(d->d_name);
+        parcourir (cmd,racine,maxProc,nProc);
+        chdir("..");
+      }
+    }
+  }
+  if ( closedir(dp) == -1)
+  {
+    return MY_EOF;
+  }
+  return 1;
 }
 
 int lancer (const char *cmd, const char *fichier, int maxProc, int nProc)
@@ -48,8 +74,8 @@ int lancer (const char *cmd, const char *fichier, int maxProc, int nProc)
     case 0: /* fils */
       fd= open(fichier,O_RDONLY);
       dup2(fd,0);
-      close(fd);
-      execlp(cmd,fichier);
+      close(0);
+      execlp(cmd,cmd,fichier,NULL);
       break;
     case -1: /* erreur */
       printf("Error\n");
