@@ -9,7 +9,9 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
+#include <sys/wait.h>
+#include <string.h>
+#include <time.h>
 /* Constantes */
 #define MY_EOF -1
 
@@ -23,14 +25,21 @@ void attendre();
 /*Affiche l'aide à l'utilisation du programme*/
 void help()
 {
-  printf("Utilisation de findexec\nParamètres optionnels:\n -e [commande à éxecuter]\n");
+  printf("Utilisation de findexec\nParamètres optionnels:\n -e [commande à éxecuter, ls par défaut]\n");
   printf(" -h affichage de l'aide\n -n [0<int] (nombre de processus simultanées max)\n");
   printf("Appel : \n findexec [parameters] path(s)\n");
 }
 
 void attendre()
 {
-  wait(NULL);
+  int rWait; //variable du retour de wait()
+  wait(&rWait);
+  if(WIFEXITED(rWait))
+    printf("exit(%d)\n",WEXITSTATUS(rWait));
+  else if(WIFSIGNALED(rWait))
+    printf("signal %d\n",WTERMSIG(rWait));
+  else
+    printf("autre\n" );
 }
 
 int parcourir (const char *cmd, const char *racine, int maxProc, int nProc)
@@ -39,28 +48,41 @@ int parcourir (const char *cmd, const char *racine, int maxProc, int nProc)
   DIR *dp;
   struct stat statD;
 
-  if ((dp = opendir(".")) == NULL)
+
+  if ((dp = opendir(racine)) == NULL)
     return MY_EOF;
+
+  chdir(racine);
 
   while(( d = readdir(dp)) != NULL )
   {
     if((strcmp(d->d_name,".") != 0) && (strcmp(d->d_name,"..") != 0))
     {
       stat(d->d_name,&statD);
-      lancer(cmd,d->d_name,maxProc,nProc);
+
       if(S_ISDIR(statD.st_mode))
       {
-        chdir(d->d_name);
-        parcourir (cmd,racine,maxProc,nProc);
-        chdir("..");
+        parcourir (cmd,d->d_name,maxProc,nProc);
+      }
+      else if(S_ISREG(statD.st_mode)&&(statD.st_mode & S_IRUSR))
+      {
+        nProc=lancer(cmd,d->d_name,maxProc,nProc);
+      }
+      else
+      {
+        fprintf(stderr, "%s\n",strerror(errno));
       }
     }
   }
+
+  chdir("..");
+
   if ( closedir(dp) == -1)
   {
     return MY_EOF;
   }
-  return 1;
+
+  return nProc;
 }
 
 int lancer (const char *cmd, const char *fichier, int maxProc, int nProc)
@@ -72,26 +94,33 @@ int lancer (const char *cmd, const char *fichier, int maxProc, int nProc)
   switch (f)
   {
     case 0: /* fils */
-      fd= open(fichier,O_RDONLY);
-      dup2(fd,0);
-      close(0);
-      execlp(cmd,cmd,fichier,NULL);
+      if((fd= open(fichier,O_RDONLY))!=-1)
+      {
+        dup2(fd,0);
+        close(0);
+        execlp(cmd,cmd,fichier,NULL);
+      }
       break;
     case -1: /* erreur */
       printf("Error\n");
       return MY_EOF;
     default: /*pere*/
-      wait(NULL);
+      nProc++;
+      if(nProc>=maxProc)
+      {
+        attendre();
+        nProc--;
+      }
+
       break;
   }
-  return 0;
+  return nProc;
 }
 
 int main(int argc, char const *argv[])
 {
   int i;
-  char* cmd=NULL;
-  char* path= NULL;
+  char* cmd="ls";
   char* p;
   int maxProc=1;
   int nProc=0;
@@ -115,7 +144,7 @@ int main(int argc, char const *argv[])
        if (errno != 0 || *p != '\0' || conv > INT_MAX || conv <= 0)
        {
          printf("%s is not a valid number\n Exiting ...",optarg);
-         return -1;
+         return MY_EOF;
        }
        else
        {
@@ -126,31 +155,26 @@ int main(int argc, char const *argv[])
        cmd = optarg;
        break;
      case '?':
-       if (optopt == 'c')
+       if (optopt == 'n' || optopt == 'e')
          fprintf (stderr, "Option -%c requires an argument.\n", optopt);
        else if (isprint (optopt))
          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
        else
-         fprintf (stderr,
-                  "Unknown option character `\\x%x'.\n",
-                  optopt);
+         fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
        return -1;
      default:
        abort();
   }
-
-  i=optind;
-
-  if(i==argc)
+  for(i=optind;i<argc;i++)
   {
-    printf("No path specified\n");
-    return -1;
+    nProc=parcourir(cmd,argv[i],maxProc,nProc);
   }
 
-  for(i;i<argc;i++)
+  while(nProc>0)
   {
-    printf("maxProc : %d Cmd : %s Path :%s \n",maxProc,cmd,argv[i]);
-    parcourir(cmd,argv[i],maxProc,nProc);
+    attendre();
+    nProc--;
   }
+
   return 0;
 }
